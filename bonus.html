@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body, html{
+margin:0;
+font-family:Arial;
+font-size:18px;
+background:#1b3742;
+color:#FFFFFF;
+}
+</style>
+
+</head>
+<body>
+<script src="AssetsReader.js?v=1"></script>
+
+<script>
+var imagesExt = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+var audioExt = ['mp3'];
+var videoExt = ['mp4'];
+var reader = new AssetsReader();
+
+function dragHandler(e){
+e.preventDefault();
+}
+
+function readHandler(ok){
+var d = document.getElementById('d');
+var dInfo = document.getElementById('info');
+if(ok){
+var files = reader.files;
+var count = files.length;
+var str = '<div style="color:#ffff00;">Чтение успешно, кол-во файлов: '+count+'</div>';
+str += '<hr />';
+
+// если нужно найти файлы по расширению, полезно для игр, чтобы уже точно знать что эти файлы png изображение (а не аудио и тд)
+//var filesPng = reader.findFilesExt('png');
+
+//console.log(reader.findFilesExt('png'));
+for (var i = 0; i < count; i++){
+var file = files[i];
+var cnt = file.path+' (pos '+file.pos+', size '+file.size+' bytes)<br />';
+if(file.ext == 'svg'){ // если svg то добавление отличается, добавляем как контент html
+var bytes = reader.readBytes(file.pos, file.size); // сначала получаем бинарные данные
+var svgContent = reader.readString(bytes); // и переводим в текст
+cnt += svgContent;
+}else{
+var url = reader.createURL(file); // создание ссылки, после этого уже не будет отличия, это равносильно что ссылка с https: но только blob:
+
+/******************************************************
+в играх (и не только) загрузить изображение можно так
+var img = new Image();
+img.src = url;
+img.onload = () => {};
+******************************************************/
+
+// если нужно удалить Blob ссылки, они сами удаляются после закрытия или обновления вкладки, но ручное управление бывает необходимо (особенно в играх)
+// URL.revokeObjectURL(url);
+if(imagesExt.indexOf(file.ext) > -1){ // если изображение
+cnt += '<img src="'+url+'">';
+}else if(audioExt.indexOf(file.ext) > -1){ // если аудио
+cnt += '<audio src="'+url+'" controls></audio>';
+}else if(videoExt.indexOf(file.ext) > -1){ // если видео
+cnt += '<video src="'+url+'" controls></video>';
+}
+}
+str += cnt;
+str += '<br /><hr />';
+}
+
+d.innerHTML = str;
+}else{
+dInfo.innerHTML = 'Не знаю такой файл, нужен файл с ресурсами!';
+}
+}
+
+document.addEventListener('dragover', dragHandler);
+document.addEventListener('dragleave', dragHandler);
+
+window.addEventListener('drop', (e) => {
+e.preventDefault();
+var files = e.dataTransfer.files;
+if(files && files.length > 0){
+if(reader.files.length == 0){
+reader.readFile(files[0], readHandler);
+}
+}
+});
+
+/********************
+если нужно загрузить файл с сервера а не локально, воспользуемся fetch в браузере (он просто короче для этого примера)
+
+var fileURL = 'myAssets?v=1';
+
+// если нужно сбрасывать кеш (грузить файл по новой) полезно для тестов, добавляем например текущее время через Date.now
+//var fileURL = 'myAssets?v='+Date.now();
+
+fetch(fileURL).then(res => res.arrayBuffer()).then(res => new Uint8Array(res)).then((buf) => {
+
+// если изменить магический байт, ok будет false, проверка успешно работает
+//buf[0] = 2;
+var ok = reader.read(buf);
+if(ok){
+// работаем с ресурсами
+readHandler(ok);
+}else{
+// не удалось прочитать файл, может это не файл с ресурсами
+}
+}).catch(() => {
+// ошибка загрузки файла
+});
+
+********************/
+
+</script>
+
+<div id="d" style="padding:5px;text-align:center;">
+<div>Вас приветствует распаковщик ресурсов!<br />Перенесите файл в это волшебное окно.</div>
+<div id="info" style="color:#ffff00;">Жду файл с ресурсами :)</div>
+</div>
+
+</body>
+</html>
