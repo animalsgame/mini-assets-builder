@@ -61,9 +61,9 @@ reader.readAsArrayBuffer(file);
 }
 
 // создание ссылки из файла, тогда сможем работать даже с Image обычным способом передав в src специальный url, Blob магия она такая :)
-createURL(file){
+createURL(file, contentType){
+if(!contentType)contentType = 'application/octet-stream';
 if(file){
-var contentType = 'application/octet-stream';
 var bytes = this.readBytes(file.pos, file.size);
 var blob = new Blob([bytes], {type:contentType});
 var url = URL.createObjectURL(blob);
