@@ -1,2 +1,1 @@
 node demo.js
-pause
